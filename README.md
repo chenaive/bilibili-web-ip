@@ -1,7 +1,5 @@
+<img width="1983" height="793" alt="图片" src="https://github.com/user-attachments/assets/40cba810-a922-4556-a648-ee41e3940233" />
 
-<p align="center">
-  <img src="./assets/bili-ip-hero.png" alt="Bili 属地助手——让网页端，也看得见 IP 属地" width="100%">
-</p>
 
 <p align="center">
   <b>看视频、翻评论、逛空间，属地信息一眼就能看到。</b><br>
@@ -26,6 +24,10 @@
 | 首页的视频推荐 | 视频卡片的作者区域 |
 | 视频右侧的“接下来播放” | 播放量、弹幕数下方，单独一行 |
 | 空间里的动态及评论 | 展示页面提供的动态发布属地和评论属地 |
+> <img width="993" height="214" alt="图片" src="https://github.com/user-attachments/assets/4182abaa-061e-49ce-baee-4648dbc22ce4" />
+> <img width="1583" height="1140" alt="图片" src="https://github.com/user-attachments/assets/62ba8899-4009-4c78-8a7a-d69934d173e0" />
+> <img width="2486" height="1378" alt="图片" src="https://github.com/user-attachments/assets/b91244fb-6286-4eda-8b05-795bd8a9a10a" />
+> <img width="1813" height="1323" alt="图片" src="https://github.com/user-attachments/assets/926af4e5-ae6e-42c4-8a16-3ee04b733f1c" />
 
 标签统一使用简短的 **`IP：广东`** 这样的形式。没有地区或查询失败，也会给出明确提示。
 
@@ -58,6 +60,7 @@
 平板建议开启浏览器菜单里的 **“桌面版网站”**。
 
 ## 🔓 第一次使用
+<img width="2534" height="1596" alt="图片" src="https://github.com/user-attachments/assets/a1fce5b6-6066-4798-a13d-cb3a47ba4529" />
 
 **看评论属地，不需要额外授权。** 脚本会尽量直接读取页面已有的信息。
 
