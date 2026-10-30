@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bili 属地助手（评论、空间、UP主与动态）
 // @namespace    local.bili-location-helper
-// @version      0.2.4
+// @version      1.1
 // @description  展示B站已公开的IP属地；账号属地需主动授权。本地缓存、限速，不打开用户主页。
 // @match        https://www.bilibili.com/*
 // @match        https://space.bilibili.com/*
@@ -14,6 +14,7 @@
 // @grant        GM_setValue
 // @grant        GM_xmlhttpRequest
 // @grant        GM_registerMenuCommand
+// @grant        GM_setClipboard
 // @connect      app.bilibili.com
 // @connect      passport.bilibili.com
 // @noframes
@@ -379,7 +380,7 @@ class BilibiliToken {
 (() => {
   'use strict';
   const W = typeof unsafeWindow === 'undefined' ? window : unsafeWindow;
-  const DAY = 86400000, VERSION = '0.2.4';
+  const DAY = 86400000, VERSION = '1.1';
   const get = (k, d) => { try { return GM_getValue(k, d); } catch { return d; } };
   const set = (k, v) => GM_setValue(k, v);
   let token = get('accessKey', ''), epoch = 0;
@@ -546,6 +547,8 @@ class BilibiliToken {
         display:inline-block!important;max-width:calc(100% - 22px)!important;min-width:0;
         overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle; }
       .bl-card-owner > svg,.bl-card-owner > i { vertical-align:middle; }
+      .bl-card-owner.bl-aicu-reserve {padding-right:calc(var(--bl-ip-space,68px) + 40px)!important;}
+      .bl-card-owner.bl-aicu-reserve::after {right:40px!important;}
       .bl-sidebar-ip::after { display:block!important;position:static!important;transform:none!important;
         max-width:100%;margin:4px 0 0!important;font-size:12px;line-height:18px;clear:both; }
       .bl-profile-ip::after { font-size:14px;font-weight:600;line-height:22px;
@@ -555,7 +558,7 @@ class BilibiliToken {
     (document.head || document.documentElement).append(style);
   }
   function resetCardLayout(anchor) {
-    anchor.classList.remove('bl-card-owner'); anchor.style.removeProperty('--bl-ip-space');
+    anchor.classList.remove('bl-card-owner','bl-aicu-reserve'); anchor.style.removeProperty('--bl-ip-space');
   }
   function clearAccountLabel(anchor) {
     const target = cardLabelTargets.get(anchor);
@@ -782,6 +785,7 @@ class BilibiliToken {
         renderCards(root);
       }
       if (!document.querySelector('#bl-open') && document.body) createUI();
+      syncAicuQueries();
     } finally { scanning = false; }
   }
   function createUI() {
@@ -793,7 +797,8 @@ class BilibiliToken {
   }
   function refreshPanel() {
     const el = document.querySelector('#bl-status');
-    if (el) el.textContent = `${status}\n本页额外请求 ${stats.requests} 次；已收到 JSON 约 ${(stats.bytes / 1024).toFixed(1)} KB（未压缩，不含请求头和重传）；缓存 ${Object.keys(cache).length} 个账号。\n评论标签 ${stats.comments} 次；动态标签 ${stats.posts} 次。\n首页／推荐卡片 IP：${cardEnabled ? '开启' : '暂停'}；本页额外查询额度已分配 ${reservedCards.size}/${cardLimit} 位 UP 主（含排队后跳过的名额）。\n这是新查询额度，不是 IP 标签数量上限。缓存命中不占新额度，评论不受此限；继续滚动不重置额度。\n被动兼容模式：不改写网页请求、组件注册或更新方法。`;
+    if (el) el.textContent = `${status}\nAICU 查询按钮：${aicuEnabled ? '开启' : '关闭'}
+本页额外请求 ${stats.requests} 次；已收到 JSON 约 ${(stats.bytes / 1024).toFixed(1)} KB（未压缩，不含请求头和重传）；缓存 ${Object.keys(cache).length} 个账号。\n评论标签 ${stats.comments} 次；动态标签 ${stats.posts} 次。\n首页／推荐卡片 IP：${cardEnabled ? '开启' : '暂停'}；本页额外查询额度已分配 ${reservedCards.size}/${cardLimit} 位 UP 主（含排队后跳过的名额）。\n这是新查询额度，不是 IP 标签数量上限。缓存命中不占新额度，评论不受此限；继续滚动不重置额度。\n被动兼容模式：不改写网页请求、组件注册或更新方法。`;
   }
   function panel() {
     document.querySelector('#bl-panel')?.remove();
@@ -801,9 +806,14 @@ class BilibiliToken {
     overlay.style.cssText = 'position:fixed;inset:0;background:#0008;z-index:2147483647;display:grid;place-items:center;padding:14px;';
     const box = document.createElement('section');
     box.style.cssText = 'box-sizing:border-box;width:min(520px,100%);max-height:85vh;overflow:auto;background:#fff;color:#222;border-radius:16px;padding:22px;font:15px/1.7 sans-serif;box-shadow:0 6px 30px #0005;';
-    box.innerHTML = '<h2 style="margin:0 0 10px;font-size:21px">Bili 属地助手</h2><p>短标签统一显示 <b>IP：地区</b>。主页、UP 主与视频卡片显示账号属地；评论／动态优先显示发布时属地，详细来源可查看标签提示。</p><p id="bl-status" style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:8px"></p><label style="display:block"><input id="bl-consent" type="checkbox"> 我同意向 B 站申请客户端凭证，用于查询账号属地。凭证保存在脚本管理器中，只发给 B 站。该非官方授权流程可能失效或导致网页重新登录。</label><div id="bl-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"></div><p style="font-size:12px;color:#666">账号属地缓存 24 小时，未提供属地缓存 30 分钟；请求间隔至少 1.8 秒。首页／推荐仅查询可见卡片，默认每页最多 20 个不同账号；可手动追加名额。历史评论没有属地时不补猜测地区。关闭此脚本可停止所有功能。v' + VERSION + '</p>';
+    box.innerHTML = '<h2 style="margin:0 0 10px;font-size:21px">Bili 属地助手</h2><p>IP 附近的“查询”会复制 UID 并打开第三方 AICU 评论页；可用下方开关隐藏按钮，不传登录凭证。<br>短标签统一显示 <b>IP：地区</b>。主页、UP 主与视频卡片显示账号属地；评论／动态优先显示发布时属地，详细来源可查看标签提示。</p><p id="bl-status" style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:8px"></p><label style="display:block"><input id="bl-consent" type="checkbox"> 我同意向 B 站申请客户端凭证，用于查询账号属地。凭证保存在脚本管理器中，只发给 B 站。该非官方授权流程可能失效或导致网页重新登录。</label><div id="bl-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"></div><p style="font-size:12px;color:#666">账号属地缓存 24 小时，未提供属地缓存 30 分钟；请求间隔至少 1.8 秒。首页／推荐仅查询可见卡片，默认每页最多 20 个不同账号；可手动追加名额。历史评论没有属地时不补猜测地区。关闭此脚本可停止所有功能。v' + VERSION + '</p>';
     const actions = box.querySelector('#bl-actions');
     function action(text, fn) { const b = document.createElement('button'); b.textContent = text; b.style.cssText = 'padding:10px 14px;border:1px solid #ccc;background:#f7f7f7;color:#222;border-radius:8px;font-size:14px;cursor:pointer;'; b.onclick = () => fn(b); actions.append(b); }
+    action(aicuEnabled ? '关闭 AICU 查询按钮' : '开启 AICU 查询按钮', b => {
+      setAicuEnabled(!aicuEnabled);
+      b.textContent = aicuEnabled ? '关闭 AICU 查询按钮' : '开启 AICU 查询按钮';
+      refreshPanel();
+    });
     action(token ? '重新授权' : '授权读取账号属地', authorize);
     action(cardEnabled ? '暂停首页/推荐 IP' : '开启首页/推荐 IP', b => {
       cardEnabled = !cardEnabled; set('cardEnabled', cardEnabled);
@@ -830,6 +840,108 @@ class BilibiliToken {
   // Property-only updates and history navigation; no continuous background polling.
   setInterval(() => { if (!document.hidden) schedule(); }, 3000);
   document.addEventListener('visibilitychange', schedule);
+  // User-initiated external links only. Never send Bilibili credentials to AICU.
+  const aicuButtons = new Map();
+  let aicuEnabled = get('aicuEnabled', true);
+  let aicuHost, aicuRoot, aicuFrame = false;
+  function removeAicuButton(el, record) {
+    record.link.remove(); el.classList.remove('bl-aicu-reserve');
+    if (record.comment && el.style.marginRight === '42px') el.style.marginRight = record.originalMarginRight;
+  }
+  function clearAicuButtons() {
+    for (const [el, record] of aicuButtons) removeAicuButton(el, record);
+    aicuButtons.clear(); aicuHost?.remove(); aicuHost = undefined; aicuRoot = undefined;
+  }
+  function setAicuEnabled(enabled) {
+    aicuEnabled = Boolean(enabled); set('aicuEnabled', aicuEnabled);
+    if (!aicuEnabled) clearAicuButtons(); else schedule();
+  }
+  function aicuURL(uid) {
+    if (typeof uid !== 'string' || !/^\d+$/.test(uid) || uid === '0') return '';
+    const url = new URL('https://www.aicu.cc/reply'); url.searchParams.set('uid', uid); return url.href;
+  }
+  function ensureAicuHost() {
+    if (aicuHost?.isConnected) return;
+    aicuHost = document.createElement('div'); aicuHost.className = 'bl-ui'; aicuHost.id = 'bl-aicu-links';
+    aicuHost.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483600;';
+    aicuRoot = aicuHost.attachShadow({mode:'open'});
+    const style = document.createElement('style');
+    style.textContent = 'a{position:fixed;display:block;box-sizing:border-box;height:20px;padding:0 5px;font:11px/18px system-ui,sans-serif;white-space:nowrap;text-decoration:none;color:#1683ba;background:#f0f8ff;border:1px solid #a6cfe5;border-radius:4px;pointer-events:auto}a:hover,a:focus{background:#dcefff;outline:1px solid #1683ba}';
+    aicuRoot.append(style); document.documentElement.append(aicuHost);
+  }
+  function aicuTextWidth(text, size=12) {
+    return [...text].reduce((sum, c) => sum + (c.charCodeAt(0)<128 ? size*.58 : size), 0);
+  }
+  function syncAicuQueries() {
+    if (!aicuEnabled) { clearAicuButtons(); return; }
+    if (!pageReady || document.hidden) return;
+    const targets = new Map();
+    for (const [el, record] of accountLabels) if (el.isConnected) targets.set(el, {uid:record.uid, account:true});
+    for (const root of roots) for (const el of root.querySelectorAll('bili-comment-action-buttons-renderer,.reply-item,.sub-reply-item,.reply-wrap,.comment-item')) {
+      try {
+        const data=replyData(el), uid=id(data?.member?.mid) || id(data?.mid);
+        const scope=el.shadowRoot || el;
+        const badge=scope.querySelector('.bl-location[data-kind="comment"]');
+        if (uid && badge) targets.set(badge,{uid,account:false});
+      } catch {}
+    }
+    for (const [el, record] of aicuButtons) if (!targets.has(el) || targets.get(el).uid!==record.uid) {
+      removeAicuButton(el,record);aicuButtons.delete(el);
+    }
+    for (const [el, target] of targets) {
+      if (!aicuURL(target.uid) || typeof el.getBoundingClientRect !== 'function') continue;
+      const rect=el.getBoundingClientRect();
+      if (!rect.width || !rect.height || rect.bottom<0 || rect.top>window.innerHeight || rect.right<0 || rect.left>window.innerWidth) {
+        const old=aicuButtons.get(el);if(old) old.link.style.display='none';continue;
+      }
+      ensureAicuHost();
+      let record=aicuButtons.get(el);
+      if (!record) {
+        const link=document.createElement('a');link.textContent='查询';link.href=aicuURL(target.uid);
+        link.target='_blank';link.rel='noopener noreferrer';link.referrerPolicy='no-referrer';
+        link.title='AICU 查询（第三方）：点击后复制 UID '+target.uid+' 并打开其评论查询页';
+        link.setAttribute('aria-label','在 AICU 查询 UID '+target.uid+' 的历史发言');
+        link.addEventListener('click',()=>{
+          // Do not await clipboard access: allow native new-tab navigation immediately.
+          try { GM_setClipboard(target.uid,'text'); } catch {
+            try { navigator.clipboard?.writeText(target.uid).catch(()=>{}); } catch {}
+          }
+        });
+        aicuRoot.append(link);record={uid:target.uid,link,comment:!target.account,originalMarginRight:el.style.marginRight || ''};aicuButtons.set(el,record);
+      }
+      let left=rect.right+4, top=rect.top+(rect.height-20)/2;
+      if (target.account) {
+        const text=el.getAttribute('data-bl-account-label') || '';
+        if (el.classList.contains('bl-sidebar-ip')) {
+          left=rect.left+aicuTextWidth(text)+7;top=rect.bottom-20;
+        } else if (el.classList.contains('bl-card-owner')) {
+          el.classList.add('bl-aicu-reserve');left=rect.right-36;top=rect.top+(rect.height-20)/2;
+        } else {
+          // DOM Range measures native text only; CSS-generated IP text adds no template nodes.
+          try {
+            const range=document.createRange();range.selectNodeContents(el);
+            const textRect=range.getBoundingClientRect();
+            left=textRect.right+aicuTextWidth(text,el.classList.contains('bl-profile-ip')?14:12)+
+              (el.classList.contains('bl-profile-ip')?30:10);
+          } catch {}
+        }
+      } else {
+        // Reserve space on our own comment badge, not inside native author markup.
+        el.style.marginRight='42px';
+      }
+      record.link.style.display='block';
+      record.link.style.left=Math.max(0,Math.min(left,window.innerWidth-40))+'px';
+      record.link.style.top=Math.max(0,top)+'px';
+    }
+    if (document.querySelector('#bl-panel')) for (const record of aicuButtons.values()) record.link.style.display='none';
+  }
+  function queueAicuLayout() {
+    if (!aicuEnabled || aicuFrame) return;aicuFrame=true;
+    requestAnimationFrame(()=>{aicuFrame=false;syncAicuQueries();});
+  }
+  window.addEventListener('scroll',queueAicuLayout,{passive:true,capture:true});
+  window.addEventListener('resize',queueAicuLayout,{passive:true});
+
 })();
 
 })();
