@@ -12,9 +12,19 @@
   <a href="#-常见问题">常见问题</a>
 </p>
 
+<details>
+<summary><b>显示效果图</b></summary>
+> <img width="993" height="214" alt="图片" src="https://github.com/user-attachments/assets/4182abaa-061e-49ce-baee-4648dbc22ce4" />
+> <img width="1583" height="1140" alt="图片" src="https://github.com/user-attachments/assets/62ba8899-4009-4c78-8a7a-d69934d173e0" />
+> <img width="2486" height="1378" alt="图片" src="https://github.com/user-attachments/assets/b91244fb-6286-4eda-8b05-795bd8a9a10a" />
+> <img width="1813" height="1323" alt="图片" src="https://github.com/user-attachments/assets/926af4e5-ae6e-42c4-8a16-3ee04b733f1c" />
+</details>
+
+
 ---
 
 ## Bilibili网页端显示IP工具
+
 
 | 访问的页面 | 属地显示在哪里 |
 | --- | --- |
@@ -24,10 +34,9 @@
 | 首页的视频推荐 | 视频卡片的作者区域 |
 | 视频右侧的“接下来播放” | 播放量、弹幕数下方，单独一行 |
 | 空间里的动态及评论 | 展示页面提供的动态发布属地和评论属地 |
-> <img width="993" height="214" alt="图片" src="https://github.com/user-attachments/assets/4182abaa-061e-49ce-baee-4648dbc22ce4" />
-> <img width="1583" height="1140" alt="图片" src="https://github.com/user-attachments/assets/62ba8899-4009-4c78-8a7a-d69934d173e0" />
-> <img width="2486" height="1378" alt="图片" src="https://github.com/user-attachments/assets/b91244fb-6286-4eda-8b05-795bd8a9a10a" />
-> <img width="1813" height="1323" alt="图片" src="https://github.com/user-attachments/assets/926af4e5-ae6e-42c4-8a16-3ee04b733f1c" />
+
+
+
 
 标签统一使用简短的 **`IP：广东`** 这样的形式。没有地区或查询失败，也会给出明确提示。
 
@@ -51,8 +60,7 @@
 2. 打开油猴控制面板，选择 **“添加新脚本”**。
 3. 删除编辑器里的模板，粘贴代码，保存并启用。
 
-也可以下载本仓库的 **[安装向导](./安装向导.html)**，在浏览器中打开，点击“复制完整脚本”。
-
+也可以点击 **[Bilibili显示IP](https://greasyfork.org/zh-CN/scripts/602922-bilibili%E6%98%BE%E7%A4%BAip-b%E7%AB%99-bilibili-%E5%93%94%E5%93%A9%E5%93%94%E5%93%A9)**，直接安装
 ### ③ 打开 B 站
 
 重新打开一个 B 站页面，等待页面加载完成。右下角出现 **“IP 属地”** 按钮，就可以查看设置和运行状态了。
