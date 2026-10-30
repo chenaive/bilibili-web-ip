@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Bili 属地助手（评论、空间、UP主与动态）
+// @name         Bilibili显示IP |B站|Bilibili|哔哩哔哩 
 // @namespace    local.bili-location-helper
 // @version      1.1
 // @description  展示B站已公开的IP属地；账号属地需主动授权。本地缓存、限速，不打开用户主页。
